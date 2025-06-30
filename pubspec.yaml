@@ -1,0 +1,16 @@
+name: sdl3_learnopengl
+description: learnopengl.com for Dart(SDL3)
+version: 1.0.0
+homepage: https://github.com/sansuido/sdl3_learnopengl
+repository: https://github.com/sansuido/sdl3_learnopengl
+
+environment:
+  sdk: ^3.8.1
+
+dependencies:
+  ffi: ^2.1.4
+  sdl3: ^2.1.0
+  vector_math: ^2.2.0
+
+dev_dependencies:
+  halildurmus_lints: ^1.0.1
