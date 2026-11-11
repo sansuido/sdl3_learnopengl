@@ -1,5 +1,6 @@
 // https://github.com/JoeyDeVries/LearnOpenGL/blob/master/includes/learnopengl/camera.h
 import 'dart:math' as math;
+
 import 'package:vector_math/vector_math.dart';
 
 // Defines several possible options for camera movement. Used as abstraction to stay away from window-system specific input methods

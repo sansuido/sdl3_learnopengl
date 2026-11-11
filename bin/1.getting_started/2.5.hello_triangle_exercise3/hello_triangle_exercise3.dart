@@ -1,9 +1,8 @@
 // https://github.com/JoeyDeVries/LearnOpenGL/blob/master/src/1.getting_started/2.5.hello_triangle_exercise3/hello_triangle_exercise3.cpp
 import 'dart:ffi';
-import 'package:ffi/ffi.dart';
+
 import 'package:sdl3/sdl3.dart';
 import 'package:sdl3/sdl3opengl.dart';
-import 'package:sdl3_learnopengl/sdl3_learnopengl.dart';
 
 // settings
 const gScreenWidth = 800;
@@ -73,34 +72,34 @@ int main() {
   // ------------------------------------
   // vertext shader
   final vertexShader = glCreateShader(GL_VERTEX_SHADER);
-  glexShaderSource(vertexShader, gVertexShaderSource);
+  glxShaderSource(vertexShader, gVertexShaderSource);
   glCompileShader(vertexShader);
-  if (glexGetShaderiv(vertexShader, GL_COMPILE_STATUS) != GL_TRUE) {
+  if (glxGetShaderiv(vertexShader, GL_COMPILE_STATUS) != GL_TRUE) {
     print('ERROR::SHADER::VERTEX::COMPILATIN_FALED');
-    final bufSize = glexGetShaderiv(vertexShader, GL_INFO_LOG_LENGTH);
+    final bufSize = glxGetShaderiv(vertexShader, GL_INFO_LOG_LENGTH);
     if (bufSize > 1) {
-      print(glexGetShaderInfoLog(vertexShader, bufSize));
+      print(glxGetShaderInfoLog(vertexShader, bufSize));
     }
   }
   // fragment shader
   final fragmentShaderOrange = glCreateShader(GL_FRAGMENT_SHADER);
-  glexShaderSource(fragmentShaderOrange, gFragmentShaderSource);
+  glxShaderSource(fragmentShaderOrange, gFragmentShaderSource);
   glCompileShader(fragmentShaderOrange);
-  if (glexGetShaderiv(fragmentShaderOrange, GL_COMPILE_STATUS) != GL_TRUE) {
+  if (glxGetShaderiv(fragmentShaderOrange, GL_COMPILE_STATUS) != GL_TRUE) {
     print('ERROR::SHADER::FRAGMENT::COMPILATION_FAILED');
-    final bufSize = glexGetShaderiv(fragmentShaderOrange, GL_INFO_LOG_LENGTH);
+    final bufSize = glxGetShaderiv(fragmentShaderOrange, GL_INFO_LOG_LENGTH);
     if (bufSize > 1) {
-      print(glexGetShaderInfoLog(fragmentShaderOrange, bufSize));
+      print(glxGetShaderInfoLog(fragmentShaderOrange, bufSize));
     }
   }
   final fragmentShaderYellow = glCreateShader(GL_FRAGMENT_SHADER);
-  glexShaderSource(fragmentShaderYellow, gFragmentShader2Source);
+  glxShaderSource(fragmentShaderYellow, gFragmentShader2Source);
   glCompileShader(fragmentShaderYellow);
-  if (glexGetShaderiv(fragmentShaderYellow, GL_COMPILE_STATUS) != GL_TRUE) {
+  if (glxGetShaderiv(fragmentShaderYellow, GL_COMPILE_STATUS) != GL_TRUE) {
     print('ERROR::SHADER::FRAGMENT::COMPILATION_FAILED');
-    final bufSize = glexGetShaderiv(fragmentShaderYellow, GL_INFO_LOG_LENGTH);
+    final bufSize = glxGetShaderiv(fragmentShaderYellow, GL_INFO_LOG_LENGTH);
     if (bufSize > 1) {
-      print(glexGetShaderInfoLog(fragmentShaderYellow, bufSize));
+      print(glxGetShaderInfoLog(fragmentShaderYellow, bufSize));
     }
   }
   // link shaders
@@ -109,11 +108,11 @@ int main() {
   glAttachShader(shaderProgramOrange, fragmentShaderOrange);
   glLinkProgram(shaderProgramOrange);
   // check for linking errors
-  if (glexGetProgramiv(shaderProgramOrange, GL_LINK_STATUS) != GL_TRUE) {
+  if (glxGetProgramiv(shaderProgramOrange, GL_LINK_STATUS) != GL_TRUE) {
     print('ERROR::SHADER::PROGRAM::LINKING_FAILED');
-    final bufSize = glexGetProgramiv(shaderProgramOrange, GL_INFO_LOG_LENGTH);
+    final bufSize = glxGetProgramiv(shaderProgramOrange, GL_INFO_LOG_LENGTH);
     if (bufSize > 1) {
-      print(glexGetProgramInfoLog(shaderProgramOrange, bufSize));
+      print(glxGetProgramInfoLog(shaderProgramOrange, bufSize));
     }
   }
   final shaderProgramYellow = glCreateProgram();
@@ -121,11 +120,11 @@ int main() {
   glAttachShader(shaderProgramYellow, fragmentShaderYellow);
   glLinkProgram(shaderProgramYellow);
   // check linking errors
-  if (glexGetProgramiv(shaderProgramYellow, GL_LINK_STATUS) != GL_TRUE) {
+  if (glxGetProgramiv(shaderProgramYellow, GL_LINK_STATUS) != GL_TRUE) {
     print('ERROR::SHADER::PRGRAM::LINKING_FAILED');
-    final bufSize = glexGetProgramiv(shaderProgramYellow, GL_INFO_LOG_LENGTH);
+    final bufSize = glxGetProgramiv(shaderProgramYellow, GL_INFO_LOG_LENGTH);
     if (bufSize > 1) {
-      print(glexGetProgramInfoLog(shaderProgramYellow, bufSize));
+      print(glxGetProgramInfoLog(shaderProgramYellow, bufSize));
     }
   }
   glDeleteShader(vertexShader);
@@ -144,14 +143,14 @@ int main() {
     0.45, 0.5, 0.0, // top
   ];
   // we can also generate multiple VAOs or buffers at the same time
-  final vaos = glexGenVertexArrays(2);
-  final vbos = glexGenBuffers(2);
+  final vaos = glxGenVertexArrays(2);
+  final vbos = glxGenBuffers(2);
   // first triangle setup
   // --------------------
   glBindVertexArray(vaos[0]);
   glBindBuffer(GL_ARRAY_BUFFER, vbos[0]);
-  glexBufferFloat(GL_ARRAY_BUFFER, firstTriangle, GL_STATIC_DRAW);
-  glexVertexAttribPointer(
+  glxBufferFloat(GL_ARRAY_BUFFER, firstTriangle, GL_STATIC_DRAW);
+  glxVertexAttribPointer(
     0,
     3,
     GL_FLOAT,
@@ -168,8 +167,8 @@ int main() {
   glBindVertexArray(vaos[1]);
   // and a different VBO
   glBindBuffer(GL_ARRAY_BUFFER, vbos[1]);
-  glexBufferFloat(GL_ARRAY_BUFFER, secondTriangle, GL_STATIC_DRAW);
-  glexVertexAttribPointer(
+  glxBufferFloat(GL_ARRAY_BUFFER, secondTriangle, GL_STATIC_DRAW);
+  glxVertexAttribPointer(
     0,
     3,
     GL_FLOAT,
@@ -185,7 +184,6 @@ int main() {
   // render loop
   // -----------
   var quit = false;
-  final event = calloc<SdlEvent>();
   void draw() {
     // render
     // ------
@@ -214,31 +212,29 @@ int main() {
     draw();
     // sdl: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
     // ------------------------------------------------------------------------------
-    while (sdlPollEvent(event)) {
-      switch (event.type) {
-        case SdlkEvent.quit:
+    SdlxEvent? event;
+    while ((event = sdlxPollEvent()) != null) {
+      if (event is SdlxQuitEvent) {
+        quit = true;
+      }
+      if (event is SdlxKeyboardEvent && event.type == SdlkEvent.keyDown) {
+        if (event.scancode == Sdlk.escape) {
           quit = true;
-        case SdlkEvent.windowResized:
-          // make sure the viewport matches the new window dimensions; note that width and
-          // height will be significantly larger than specified on retina displays.
-          glViewport(0, 0, event.window.ref.data1, event.window.ref.data2);
-        case SdlkEvent.keyDown:
-          switch (event.key.ref.key) {
-            case Sdlk.escape:
-              quit = true;
-          }
+        }
+      }
+      if (event is SdlxWindowEvent && event.type == SdlkEvent.windowResized) {
+        glViewport(0, 0, event.data1, event.data2);
       }
     }
   }
   // optional: de-allocate all resources once they've outlived their purpose:
   // ------------------------------------------------------------------------
-  glexDeleteVertexArrays(vaos);
-  glexDeleteBuffers(vbos);
+  glxDeleteVertexArrays(vaos);
+  glxDeleteBuffers(vbos);
   glDeleteProgram(shaderProgramOrange);
   glDeleteProgram(shaderProgramYellow);
   // sdl: terminate, clearing all previously allocated SDL resources.
   // ----------------------------------------------------------------
-  event.callocFree();
   sdlGlDestroyContext(context);
   sdlDestroyWindow(window);
   sdlQuit();

@@ -1,10 +1,10 @@
 // https://github.com/JoeyDeVries/LearnOpenGL/blob/master/src/1.getting_started/7.3.camera_mouse_zoom/camera_mouse_zoom.cpp
 import 'dart:ffi';
 import 'dart:math' as math;
-import 'package:ffi/ffi.dart';
+
 import 'package:sdl3/sdl3.dart';
 import 'package:sdl3/sdl3opengl.dart';
-import 'package:sdl3_learnopengl/sdl3_learnopengl.dart';
+import 'package:sdl3_learnopengl/opengl_library.dart';
 import 'package:vector_math/vector_math.dart';
 
 // settings
@@ -121,17 +121,17 @@ int main() {
     Vector3(1.5, 0.2, -1.5),
     Vector3(-1.3, 1, -1.5),
   ];
-  final vao = glexGenVertexArrays(1)[0];
-  final vbo = glexGenBuffers(1)[0];
+  final vao = glxGenVertexArrays(1)[0];
+  final vbo = glxGenBuffers(1)[0];
   glBindVertexArray(vao);
   glBindBuffer(GL_ARRAY_BUFFER, vbo);
-  glexBufferFloat(
+  glxBufferFloat(
     GL_ARRAY_BUFFER,
     vertices.expand((values) => values).toList(),
     GL_STATIC_DRAW,
   );
   // position attribute
-  glexVertexAttribPointer(
+  glxVertexAttribPointer(
     0,
     3,
     GL_FLOAT,
@@ -141,7 +141,7 @@ int main() {
   );
   glEnableVertexAttribArray(0);
   // texture coord attribute
-  glexVertexAttribPointer(
+  glxVertexAttribPointer(
     1,
     2,
     GL_FLOAT,
@@ -167,7 +167,6 @@ int main() {
   // render loop
   // -----------
   var quit = false;
-  final event = calloc<SdlEvent>();
   void draw() {
     // render
     // ------
@@ -213,69 +212,38 @@ int main() {
     gLastFrame = currentFrame;
     // input
     // -----
+    cursorInput();
     processInput();
     // render
     // ------
     draw();
     // sdl: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
     // ------------------------------------------------------------------------------
-    while (sdlPollEvent(event)) {
-      switch (event.type) {
-        case SdlkEvent.quit:
+    SdlxEvent? event;
+    while ((event = sdlxPollEvent()) != null) {
+      if (event is SdlxQuitEvent) {
+        quit = true;
+      }
+      if (event is SdlxKeyboardEvent && event.type == SdlkEvent.keyDown) {
+        if (event.scancode == Sdlk.escape) {
           quit = true;
-        case SdlkEvent.windowResized:
-          // make sure the viewport matches the new window dimensions; note that width and
-          // height will be significantly larger than specified on retina displays.
-          glViewport(0, 0, event.window.ref.data1, event.window.ref.data2);
-        case SdlkEvent.keyDown:
-          switch (event.key.ref.key) {
-            case Sdlk.escape:
-              quit = true;
-          }
-        // sdl: whenever the mouse moves, this callback is called
-        // ------------------------------------------------------
-        case SdlkEvent.mouseMotion:
-          final xpos = event.motion.ref.x;
-          final ypos = event.motion.ref.y;
-          if (gFirstMouse) {
-            gLastX = xpos;
-            gLastY = ypos;
-            gFirstMouse = false;
-          }
-          var xoffset = xpos - gLastX;
-          // reversed since y-coordinates go from bottom to top
-          var yoffset = gLastY - ypos;
-          gLastX = xpos;
-          gLastY = ypos;
-          // change this value to your liking
-          const sensitivity = 0.1;
-          xoffset *= sensitivity;
-          yoffset *= sensitivity;
-          gYaw += xoffset;
-          gPitch += yoffset;
-          // make sure that when pitch is out of bounds, screen doesn't get flipped
-          if (gPitch > 89.0) {
-            gPitch = 89.0;
-          }
-          if (gPitch < -89.0) {
-            gPitch = -89.0;
-          }
-          final front = Vector3(
-            math.cos(radians(gYaw)) * math.cos(radians(gPitch)),
-            math.sin(radians(gPitch)),
-            math.sin(radians(gYaw)) * math.cos(radians(gPitch)),
-          );
-          gCameraFront = front.normalized();
-        // sdl: whenever the mouse scroll wheel scrolls, this callback is called
-        // ---------------------------------------------------------------------
-        case SdlkEvent.mouseWheel:
-          gFov -= event.wheel.ref.y;
-          if (gFov < 1.0) {
-            gFov = 1.0;
-          }
-          if (gFov > 45.0) {
-            gFov = 45.0;
-          }
+        }
+      }
+      if (event is SdlxWindowEvent && event.type == SdlkEvent.windowResized) {
+        // make sure the viewport matches the new window dimensions; note that width and
+        // height will be significantly larger than specified on retina displays.
+        glViewport(0, 0, event.data1, event.data2);
+      }
+      // sdl: whenever the mouse scroll wheel scrolls, this callback is called
+      // ---------------------------------------------------------------------
+      if (event is SdlxMouseWheelEvent) {
+        gFov -= event.y;
+        if (gFov < 1.0) {
+          gFov = 1.0;
+        }
+        if (gFov > 45.0) {
+          gFov = 45.0;
+        }
       }
     }
   }
@@ -283,17 +251,51 @@ int main() {
   // ------------------------------------------------------------------------
   texture1.delete();
   texture2.delete();
-  //  glexDeleteTextures([texture1, texture2]);
-  glexDeleteVertexArrays([vao]);
-  glexDeleteBuffers([vbo]);
+  //  glxDeleteTextures([texture1, texture2]);
+  glxDeleteVertexArrays([vao]);
+  glxDeleteBuffers([vbo]);
   ourShader.delete();
   // sdl: terminate, clearing all previously allocated SDL resources.
   // ----------------------------------------------------------------
-  event.callocFree();
   sdlGlDestroyContext(context);
   sdlDestroyWindow(window);
   sdlQuit();
   return 0;
+}
+
+// sdl: whenever the mouse moves, this callback is called
+// ------------------------------------------------------
+void cursorInput() {
+  final rec = sdlxGetGlobalMouseState();
+  if (gFirstMouse) {
+    gLastX = rec.x;
+    gLastY = rec.y;
+    gFirstMouse = false;
+  }
+  var xoffset = rec.x - gLastX;
+  // reversed since y-coordinates go from bottom to top
+  var yoffset = gLastY - rec.y;
+  gLastX = rec.x;
+  gLastY = rec.y;
+  // change this value to your liking
+  const sensitivity = 0.1;
+  xoffset *= sensitivity;
+  yoffset *= sensitivity;
+  gYaw += xoffset;
+  gPitch += yoffset;
+  // make sure that when pitch is out of bounds, screen doesn't get flipped
+  if (gPitch > 89.0) {
+    gPitch = 89.0;
+  }
+  if (gPitch < -89.0) {
+    gPitch = -89.0;
+  }
+  final front = Vector3(
+    math.cos(radians(gYaw)) * math.cos(radians(gPitch)),
+    math.sin(radians(gPitch)),
+    math.sin(radians(gYaw)) * math.cos(radians(gPitch)),
+  );
+  gCameraFront = front.normalized();
 }
 
 // process all input: query sdl whether relevant keys are pressed/released this frame and react accordingly
@@ -301,16 +303,16 @@ int main() {
 void processInput() {
   final cameraSpeed = 2.5 * gDeltaTime;
   final keys = sdlGetKeyboardState(nullptr);
-  if (keys[SdlkScancode.w] != 0) {
+  if (keys[SdlkScancode.w]) {
     gCameraPos += gCameraFront.scaled(cameraSpeed);
   }
-  if (keys[SdlkScancode.s] != 0) {
+  if (keys[SdlkScancode.s]) {
     gCameraPos -= gCameraFront.scaled(cameraSpeed);
   }
-  if (keys[SdlkScancode.a] != 0) {
+  if (keys[SdlkScancode.a]) {
     gCameraPos -= gCameraFront.cross(gCameraUp).scaled(cameraSpeed);
   }
-  if (keys[SdlkScancode.d] != 0) {
+  if (keys[SdlkScancode.d]) {
     gCameraPos += gCameraFront.cross(gCameraUp).scaled(cameraSpeed);
   }
 }

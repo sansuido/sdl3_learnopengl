@@ -1,6 +1,6 @@
 // https://github.com/JoeyDeVries/LearnOpenGL/blob/master/src/1.getting_started/1.1.hello_window/hello_window.cpp
 import 'dart:ffi';
-import 'package:ffi/ffi.dart';
+
 import 'package:sdl3/sdl3.dart';
 
 // settings
@@ -40,26 +40,24 @@ int main() {
   // render loop
   // -----------
   var quit = false;
-  final event = calloc<SdlEvent>();
   while (!quit) {
     // sdl: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
     // ------------------------------------------------------------------------------
     sdlGlSwapWindow(window);
-    while (sdlPollEvent(event)) {
-      switch (event.type) {
-        case SdlkEvent.quit:
+    SdlxEvent? event;
+    while ((event = sdlxPollEvent()) != null) {
+      if (event is SdlxQuitEvent) {
+        quit = true;
+      }
+      if (event is SdlxKeyboardEvent && event.type == SdlkEvent.keyDown) {
+        if (event.scancode == SdlkScancode.escape) {
           quit = true;
-        case SdlkEvent.keyDown:
-          switch (event.key.ref.key) {
-            case Sdlk.escape:
-              quit = true;
-          }
+        }
       }
     }
   }
   // sdl: terminate, clearing all previously allocated SDL resources.
   // ----------------------------------------------------------------
-  event.callocFree();
   sdlGlDestroyContext(context);
   sdlDestroyWindow(window);
   sdlQuit();

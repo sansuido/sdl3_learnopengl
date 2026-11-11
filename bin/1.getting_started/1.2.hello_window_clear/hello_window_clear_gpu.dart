@@ -1,17 +1,89 @@
 // https://github.com/JoeyDeVries/LearnOpenGL/blob/master/src/1.getting_started/1.1.hello_window/hello_window.cpp
 // https://github.com/libsdl-org/SDL/blob/main/test/testgpu_simple_clear.c
 import 'dart:ffi';
-import 'package:ffi/ffi.dart';
+
 import 'package:sdl3/sdl3.dart';
 
 // settings
 const gScreenWidth = 800;
 const gScreenHeight = 600;
-const int gGpuFormats =
-    SDL_GPU_SHADERFORMAT_SPIRV |
-    SDL_GPU_SHADERFORMAT_DXBC |
-    SDL_GPU_SHADERFORMAT_DXIL |
-    SDL_GPU_SHADERFORMAT_METALLIB;
+const int gGpuFormat = SdlkGpuShaderformat.spirv;
+
+// global variables
+Pointer<SdlWindow> gWindow = nullptr;
+Pointer<SdlGpuDevice> gDevice = nullptr;
+
+bool appInit() {
+  // sdl window creation
+  // -------------------
+  gWindow = sdlCreateWindow(
+    'LearnOpenGL to GPU(Vulkan)',
+    gScreenWidth,
+    gScreenHeight,
+    SdlkWindow.resizable,
+  );
+  if (gWindow == nullptr) {
+    print('Failed to create SDL window: ${sdlGetError()}');
+    return false;
+  }
+  gDevice = sdlCreateGpuDevice(gGpuFormat, true, null);
+  if (gDevice == nullptr) {
+    print('Failed to create GPU device: ${sdlGetError()}');
+    return false;
+  }
+  if (!sdlClaimWindowForGpuDevice(gDevice, gWindow)) {
+    print('sdlClaimWindowForGpuDevice failed: ${sdlGetError()}');
+    return false;
+  }
+  return true;
+}
+
+void appQuit() {
+  if (gDevice != nullptr && gWindow != nullptr) {
+    sdlReleaseWindowFromGpuDevice(gDevice, gWindow);
+  }
+  if (gDevice != nullptr) {
+    sdlDestroyGpuDevice(gDevice);
+    gDevice = nullptr;
+  }
+  if (gWindow != nullptr) {
+    sdlDestroyWindow(gWindow);
+    gWindow = nullptr;
+  }
+}
+
+bool appEvent() {
+  SdlxEvent? event;
+  while ((event = sdlxPollEvent()) != null) {
+    if (event is SdlxQuitEvent) {
+      return false;
+    }
+    if (event is SdlxKeyboardEvent && event.type == SdlkEvent.keyDown) {
+      if (event.scancode == Sdlk.escape) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
+bool appIterate(
+  Pointer<SdlGpuCommandBuffer> commandBuffer,
+  Pointer<SdlGpuTexture> swapchainTexture,
+) {
+  // draws a single frame of our application
+  // -----------------------------
+  final colorTargetInfo = SdlxGpuColorTargetInfo(
+    texture: swapchainTexture,
+    clearColor: const SdlxFColor(0.2, 0.3, 0.3),
+    loadOp: SDL_GPU_LOADOP_CLEAR,
+    //storeOp: SDL_GPU_STOREOP_STORE
+  );
+  final renderpass = sdlxBeginGpuRenderPass(commandBuffer, [colorTargetInfo]);
+  sdlEndGpuRenderPass(renderpass);
+  sdlSubmitGpuCommandBuffer(commandBuffer);
+  return true;
+}
 
 int main() {
   // sdl: Initialize and configure
@@ -19,105 +91,38 @@ int main() {
   if (!sdlInit(SdlkInit.video)) {
     return -1;
   }
-  // sdl window creation
-  // -------------------
-  final window = sdlCreateWindow(
-    'LearnOpenGL',
-    gScreenWidth,
-    gScreenHeight,
-    SdlkWindow.resizable,
-  );
-  if (window == nullptr) {
-    print('Failed to create SDL window');
-    sdlQuit();
-    return -1;
-  }
-  final device = sdlCreateGpuDevice(gGpuFormats, true, null);
-  if (device == nullptr) {
-    print('Failed to create GPU device');
-    sdlDestroyWindow(window);
-    sdlQuit();
-    return -1;
-  }
-  if (!sdlClaimWindowForGpuDevice(device, window)) {
-    print('sdlClaimWindowForGpuDevice failed: ${sdlGetError()}');
-    sdlDestroyWindow(window);
-    sdlQuit();
-    return -1;
-  }
-  final mode = sdlGetCurrentDisplayMode(sdlGetPrimaryDisplay());
-  if (mode != nullptr) {
-    print((mode.ref.format >> 8) & 0xff);
-  }
-  // render loop
-  // -----------
-  var quit = false;
-  final event = calloc<SdlEvent>();
-  final swapchainTexture = calloc<Pointer<SdlGpuTexture>>();
-  final swapchainTextureWidth = calloc<Uint32>();
-  final swapchainTextureHeight = calloc<Uint32>();
-  void draw() {
-    final commandBuffer = sdlAcquireGpuCommandBuffer(device);
-    if (sdlWaitAndAcquireGpuSwapchainTexture(
-      commandBuffer,
-      window,
-      swapchainTexture,
-      swapchainTextureWidth,
-      swapchainTextureHeight,
-    )) {
-      if (swapchainTextureWidth.value > 0 && swapchainTextureHeight.value > 0) {
-        final colorTargetInfo = calloc<SdlGpuColorTargetInfo>();
-        colorTargetInfo.ref.texture = swapchainTexture.value;
-        colorTargetInfo.clearColor.ref.r = 0.2;
-        colorTargetInfo.clearColor.ref.g = 0.3;
-        colorTargetInfo.clearColor.ref.b = 0.3;
-        colorTargetInfo.clearColor.ref.a = 1.0;
-        colorTargetInfo.ref.loadOp = SDL_GPU_LOADOP_CLEAR;
-        colorTargetInfo.ref.storeOp = SDL_GPU_STOREOP_STORE;
-        final renderpass = sdlBeginGpuRenderPass(
-          commandBuffer,
-          colorTargetInfo,
-          1,
-          nullptr,
-        );
-        sdlEndGpuRenderPass(renderpass);
-        sdlSubmitGpuCommandBuffer(commandBuffer);
-        colorTargetInfo.callocFree();
-      } else {
-        sdlCancelGpuCommandBuffer(commandBuffer);
+  if (appInit()) {
+    // render loop
+    // -----------
+    var running = true;
+    while (running) {
+      // sdl: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
+      // ------------------------------------------------------------------------------
+      running = appEvent();
+      if (!running) {
+        break;
       }
-    } else {
-      sdlCancelGpuCommandBuffer(commandBuffer);
-    }
-  }
-
-  while (!quit) {
-    // render
-    // ------
-    draw();
-    // sdl: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
-    // ------------------------------------------------------------------------------
-    while (sdlPollEvent(event)) {
-      switch (event.type) {
-        case SdlkEvent.quit:
-          quit = true;
-        case SdlkEvent.keyDown:
-          switch (event.key.ref.key) {
-            case Sdlk.escape:
-              quit = true;
+      // iterate the application, and rendering
+      // ------
+      if (running) {
+        final commandBuffer = sdlAcquireGpuCommandBuffer(gDevice);
+        if (commandBuffer != nullptr) {
+          final rec = sdlxWaitAndAcquireGpuSwapchainTexture(
+            commandBuffer,
+            gWindow,
+          );
+          if (rec != null) {
+            if (rec.width > 0 && rec.height > 0) {
+              running = appIterate(commandBuffer, rec.texture);
+            } else {
+              sdlCancelGpuCommandBuffer(commandBuffer);
+            }
           }
+        }
       }
     }
   }
-  // sdl: terminate, clearing all previously allocated SDL resources.
-  // ----------------------------------------------------------------
-  event.callocFree();
-  swapchainTexture.callocFree();
-  swapchainTextureWidth.callocFree();
-  swapchainTextureHeight.callocFree();
-  sdlReleaseWindowFromGpuDevice(device, window);
-  sdlDestroyGpuDevice(device);
-  sdlDestroyWindow(window);
+  appQuit();
   sdlQuit();
   return 0;
 }

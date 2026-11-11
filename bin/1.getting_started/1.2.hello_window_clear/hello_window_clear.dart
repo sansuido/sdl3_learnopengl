@@ -1,6 +1,6 @@
 // https://github.com/JoeyDeVries/LearnOpenGL/blob/master/src/1.getting_started/1.2.hello_window_clear/hello_window_clear.cpp
 import 'dart:ffi';
-import 'package:ffi/ffi.dart';
+
 import 'package:sdl3/sdl3.dart';
 import 'package:sdl3/sdl3opengl.dart';
 
@@ -43,7 +43,6 @@ int main() {
   // render loop
   // -----------
   var quit = false;
-  final event = calloc<SdlEvent>();
   while (!quit) {
     // render
     // ------
@@ -52,25 +51,23 @@ int main() {
     // sdl: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
     // ------------------------------------------------------------------------------
     sdlGlSwapWindow(window);
-    while (sdlPollEvent(event)) {
-      switch (event.type) {
-        case SdlkEvent.quit:
+    SdlxEvent? event;
+    while ((event = sdlxPollEvent()) != null) {
+      if (event is SdlxQuitEvent) {
+        quit = true;
+      }
+      if (event is SdlxKeyboardEvent && event.type == SdlkEvent.keyDown) {
+        if (event.scancode == Sdlk.escape) {
           quit = true;
-        case SdlkEvent.windowResized:
-          // make sure the viewport matches the new window dimensions; note that width and
-          // height will be significantly larger than specified on retina displays.
-          glViewport(0, 0, event.window.ref.data1, event.window.ref.data2);
-        case SdlkEvent.keyDown:
-          switch (event.key.ref.key) {
-            case Sdlk.escape:
-              quit = true;
-          }
+        }
+      }
+      if (event is SdlxWindowEvent && event.type == SdlkEvent.windowResized) {
+        glViewport(0, 0, event.data1, event.data2);
       }
     }
   }
   // sdl: terminate, clearing all previously allocated SDL resources.
   // ----------------------------------------------------------------
-  calloc.free(event);
   sdlGlDestroyContext(context);
   sdlDestroyWindow(window);
   sdlQuit();

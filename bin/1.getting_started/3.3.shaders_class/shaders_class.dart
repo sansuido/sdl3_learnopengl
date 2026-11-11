@@ -1,9 +1,9 @@
 // https://github.com/JoeyDeVries/LearnOpenGL/blob/master/src/1.getting_started/3.3.shaders_class/shaders_class.cpp
 import 'dart:ffi';
-import 'package:ffi/ffi.dart';
+
 import 'package:sdl3/sdl3.dart';
 import 'package:sdl3/sdl3opengl.dart';
-import 'package:sdl3_learnopengl/sdl3_learnopengl.dart';
+import 'package:sdl3_learnopengl/opengl_library.dart';
 
 // settings
 const gScreenWidth = 800;
@@ -58,13 +58,13 @@ int main() {
     0.5, -0.5, 0.0, 0.0, 1.0, 0.0, // bottom right
     0.0, 0.5, 0.0, 0.0, 0.0, 1.0, // top
   ];
-  final vao = glexGenVertexArrays(1)[0];
-  final vbo = glexGenBuffers(1)[0];
+  final vao = glxGenVertexArrays(1)[0];
+  final vbo = glxGenBuffers(1)[0];
   // bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
   glBindVertexArray(vao);
   glBindBuffer(GL_ARRAY_BUFFER, vbo);
-  glexBufferFloat(GL_ARRAY_BUFFER, vertices, GL_STATIC_DRAW);
-  glexVertexAttribPointer(
+  glxBufferFloat(GL_ARRAY_BUFFER, vertices, GL_STATIC_DRAW);
+  glxVertexAttribPointer(
     0,
     3,
     GL_FLOAT,
@@ -74,7 +74,7 @@ int main() {
   );
   glEnableVertexAttribArray(0);
   // color attribute
-  glexVertexAttribPointer(
+  glxVertexAttribPointer(
     1,
     3,
     GL_FLOAT,
@@ -89,7 +89,6 @@ int main() {
   // render loop
   // -----------
   var quit = false;
-  final event = calloc<SdlEvent>();
   void draw() {
     // render
     // ------
@@ -110,30 +109,28 @@ int main() {
     draw();
     // sdl: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
     // ------------------------------------------------------------------------------
-    while (sdlPollEvent(event)) {
-      switch (event.type) {
-        case SdlkEvent.quit:
+    SdlxEvent? event;
+    while ((event = sdlxPollEvent()) != null) {
+      if (event is SdlxQuitEvent) {
+        quit = true;
+      }
+      if (event is SdlxKeyboardEvent && event.type == SdlkEvent.keyDown) {
+        if (event.scancode == Sdlk.escape) {
           quit = true;
-        case SdlkEvent.windowResized:
-          // make sure the viewport matches the new window dimensions; note that width and
-          // height will be significantly larger than specified on retina displays.
-          glViewport(0, 0, event.window.ref.data1, event.window.ref.data2);
-        case SdlkEvent.keyDown:
-          switch (event.key.ref.key) {
-            case Sdlk.escape:
-              quit = true;
-          }
+        }
+      }
+      if (event is SdlxWindowEvent && event.type == SdlkEvent.windowResized) {
+        glViewport(0, 0, event.data1, event.data2);
       }
     }
   }
   // optional: de-allocate all resources once they've outlived their purpose:
   // ------------------------------------------------------------------------
-  glexDeleteVertexArrays([vao]);
-  glexDeleteBuffers([vbo]);
+  glxDeleteVertexArrays([vao]);
+  glxDeleteBuffers([vbo]);
   ourShader.delete();
   // sdl: terminate, clearing all previously allocated SDL resources.
   // ----------------------------------------------------------------
-  event.callocFree();
   sdlGlDestroyContext(context);
   sdlDestroyWindow(window);
   sdlQuit();

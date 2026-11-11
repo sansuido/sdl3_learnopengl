@@ -1,9 +1,9 @@
 // https://github.com/JoeyDeVries/LearnOpenGL/blob/master/src/1.getting_started/7.4.camera_class/camera_class.cpp
 import 'dart:ffi';
-import 'package:ffi/ffi.dart';
+
 import 'package:sdl3/sdl3.dart';
 import 'package:sdl3/sdl3opengl.dart';
-import 'package:sdl3_learnopengl/sdl3_learnopengl.dart';
+import 'package:sdl3_learnopengl/opengl_library.dart';
 import 'package:vector_math/vector_math.dart';
 
 // settings
@@ -115,17 +115,17 @@ int main() {
     Vector3(1.5, 0.2, -1.5),
     Vector3(-1.3, 1, -1.5),
   ];
-  final vao = glexGenVertexArrays(1)[0];
-  final vbo = glexGenBuffers(1)[0];
+  final vao = glxGenVertexArrays(1)[0];
+  final vbo = glxGenBuffers(1)[0];
   glBindVertexArray(vao);
   glBindBuffer(GL_ARRAY_BUFFER, vbo);
-  glexBufferFloat(
+  glxBufferFloat(
     GL_ARRAY_BUFFER,
     vertices.expand((values) => values).toList(),
     GL_STATIC_DRAW,
   );
   // position attribute
-  glexVertexAttribPointer(
+  glxVertexAttribPointer(
     0,
     3,
     GL_FLOAT,
@@ -135,7 +135,7 @@ int main() {
   );
   glEnableVertexAttribArray(0);
   // texture coord attribute
-  glexVertexAttribPointer(
+  glxVertexAttribPointer(
     1,
     2,
     GL_FLOAT,
@@ -161,7 +161,6 @@ int main() {
   // render loop
   // -----------
   var quit = false;
-  final event = calloc<SdlEvent>();
   void draw() {
     // render
     // ------
@@ -203,45 +202,32 @@ int main() {
     gLastFrame = currentFrame;
     // input
     // -----
+    cursorInput();
     processInput();
     // render
     // ------
     draw();
     // sdl: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
     // ------------------------------------------------------------------------------
-    while (sdlPollEvent(event)) {
-      switch (event.type) {
-        case SdlkEvent.quit:
+    SdlxEvent? event;
+    while ((event = sdlxPollEvent()) != null) {
+      if (event is SdlxQuitEvent) {
+        quit = true;
+      }
+      if (event is SdlxKeyboardEvent && event.type == SdlkEvent.keyDown) {
+        if (event.scancode == Sdlk.escape) {
           quit = true;
-        case SdlkEvent.windowResized:
-          // make sure the viewport matches the new window dimensions; note that width and
-          // height will be significantly larger than specified on retina displays.
-          glViewport(0, 0, event.window.ref.data1, event.window.ref.data2);
-        case SdlkEvent.keyDown:
-          switch (event.key.ref.key) {
-            case Sdlk.escape:
-              quit = true;
-          }
-        // sdl: whenever the mouse moves, this callback is called
-        // ------------------------------------------------------
-        case SdlkEvent.mouseMotion:
-          final xpos = event.motion.ref.x;
-          final ypos = event.motion.ref.y;
-          if (gFirstMouse) {
-            gLastX = xpos;
-            gLastY = ypos;
-            gFirstMouse = false;
-          }
-          final xoffset = xpos - gLastX;
-          // reversed since y-coordinates go from bottom to top
-          final yoffset = gLastY - ypos;
-          gLastX = xpos;
-          gLastY = ypos;
-          gCamera.processMouseMovement(xoffset, yoffset);
-        // sdl: whenever the mouse scroll wheel scrolls, this callback is called
-        // ---------------------------------------------------------------------
-        case SdlkEvent.mouseWheel:
-          gCamera.processMouseScroll(event.wheel.ref.y);
+        }
+      }
+      if (event is SdlxWindowEvent && event.type == SdlkEvent.windowResized) {
+        // make sure the viewport matches the new window dimensions; note that width and
+        // height will be significantly larger than specified on retina displays.
+        glViewport(0, 0, event.data1, event.data2);
+      }
+      // sdl: whenever the mouse scroll wheel scrolls, this callback is called
+      // ---------------------------------------------------------------------
+      if (event is SdlxMouseWheelEvent) {
+        gCamera.processMouseScroll(event.y);
       }
     }
   }
@@ -249,33 +235,49 @@ int main() {
   // ------------------------------------------------------------------------
   texture1.delete();
   texture2.delete();
-  //  glexDeleteTextures([texture1, texture2]);
-  glexDeleteVertexArrays([vao]);
-  glexDeleteBuffers([vbo]);
+  //  glxDeleteTextures([texture1, texture2]);
+  glxDeleteVertexArrays([vao]);
+  glxDeleteBuffers([vbo]);
   ourShader.delete();
   // sdl: terminate, clearing all previously allocated SDL resources.
   // ----------------------------------------------------------------
-  event.callocFree();
   sdlGlDestroyContext(context);
   sdlDestroyWindow(window);
   sdlQuit();
   return 0;
 }
 
+// sdl: whenever the mouse moves, this callback is called
+// ------------------------------------------------------
+void cursorInput() {
+  final rec = sdlxGetGlobalMouseState();
+  if (gFirstMouse) {
+    gLastX = rec.x;
+    gLastY = rec.y;
+    gFirstMouse = false;
+  }
+  final xoffset = rec.x - gLastX;
+  // reversed since y-coordinates go from bottom to top
+  final yoffset = gLastY - rec.y;
+  gLastX = rec.x;
+  gLastY = rec.y;
+  gCamera.processMouseMovement(xoffset, yoffset);
+}
+
 // process all input: query sdl whether relevant keys are pressed/released this frame and react accordingly
 // ---------------------------------------------------------------------------------------------------------
 void processInput() {
   final keys = sdlGetKeyboardState(nullptr);
-  if (keys[SdlkScancode.w] != 0) {
+  if (keys[SdlkScancode.w]) {
     gCamera.processKeyboard(CameraMovement.forward, gDeltaTime);
   }
-  if (keys[SdlkScancode.s] != 0) {
+  if (keys[SdlkScancode.s]) {
     gCamera.processKeyboard(CameraMovement.backward, gDeltaTime);
   }
-  if (keys[SdlkScancode.a] != 0) {
+  if (keys[SdlkScancode.a]) {
     gCamera.processKeyboard(CameraMovement.left, gDeltaTime);
   }
-  if (keys[SdlkScancode.d] != 0) {
+  if (keys[SdlkScancode.d]) {
     gCamera.processKeyboard(CameraMovement.right, gDeltaTime);
   }
 }

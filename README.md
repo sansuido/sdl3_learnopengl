@@ -56,4 +56,4 @@ See https://learnopengl.com/About for more information.
 
 # Author
 
-[yamahara](https://twitter.com/yamahara)
+[yamahara](https://x.com/yamahara)
